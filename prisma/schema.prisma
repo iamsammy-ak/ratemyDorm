@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  MODERATOR
+  ADMIN
+
+  @@map("user_role")
+}
+
+enum City {
+  TURIN
+  MILAN
+  OTHER
+
+  @@map("city")
+}
+
+enum HousingType {
+  PUBLIC_REGIONAL
+  PRIVATE
+
+  @@map("housing_type")
+}
+
+enum PublicEntity {
+  EDISU_PIEMONTE
+  DSU_LOMBARDIA
+  OTHER
+
+  @@map("public_entity")
+}
+
+enum PrivateBrand {
+  CAMPLUS
+  APARTO
+  CX
+  COLLEGIATE
+  IN_DOMUS
+  TAURASIA
+  OTHER
+
+  @@map("private_brand")
+}
+
+enum Currency {
+  EUR
+
+  @@map("currency")
+}
+
+enum ResidenceStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+
+  @@map("residence_status")
+}
+
+enum PhotoKind {
+  OFFICIAL
+  STUDENT
+
+  @@map("photo_kind")
+}
+
+enum ResidenceAreaType {
+  ROOM
+  KITCHEN
+  BATHROOM
+  COMMON_AREA
+  EXTERIOR
+  STUDY_ROOM
+  LAUNDRY
+  GYM
+  OTHER
+
+  @@map("residence_area_type")
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  FLAGGED
+
+  @@map("review_status")
+}
+
+enum ReviewerType {
+  ERASMUS_STUDENT
+  INTERNATIONAL_STUDENT
+  ITALIAN_STUDENT
+  PHD_STUDENT
+  OTHER
+
+  @@map("reviewer_type")
+}
+
+enum RatingCategory {
+  WIFI_CONNECTIVITY
+  CLEANLINESS
+  SOCIAL_VIBE_COMMUNITY
+  LOCATION_SAFETY
+  AMENITIES
+  VALUE_FOR_MONEY
+
+  @@map("rating_category")
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("submission_status")
+}
+
+enum ResidenceAmenityType {
+  WIFI
+  LAUNDRY
+  GYM
+  STUDY_ROOMS
+  BIKE_STORAGE
+  PARKING
+  AIR_CONDITIONING
+  HEATING
+  CLEANING_SERVICE
+  SECURITY_24_7
+  ACCESSIBILITY
+  OTHER
+
+  @@map("residence_amenity_type")
+}
+
+model User {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  email           String   @unique @db.VarChar(255)
+  passwordHash    String?  @map("password_hash") @db.VarChar(255)
+  displayName     String   @map("display_name") @db.VarChar(120)
+  avatarUrl       String?  @map("avatar_url") @db.VarChar(2048)
+  role            UserRole @default(STUDENT)
+  university      String?  @db.VarChar(160)
+  isInternational Boolean  @map("is_international") @default(false)
+  createdAt       DateTime @map("created_at") @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @map("updated_at") @default(now()) @db.Timestamptz(6)
+
+  reviews              Review[]
+  photos               ResidencePhoto[]      @relation("UserUploadedPhotos")
+  residenceSubmissions ResidenceSubmission[] @relation("ResidenceSubmittedBy")
+  reviewedSubmissions  ResidenceSubmission[] @relation("ResidenceReviewedBy")
+  helpfulVotes         ReviewHelpfulVote[]
+  createdResidences    Residence[]           @relation("ResidenceCreatedBy")
+  approvedResidences   Residence[]           @relation("ResidenceApprovedBy")
+
+  @@index([role], map: "idx_users_role")
+  @@map("users")
+}
+
+model Residence {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  slug          String    @unique @db.VarChar(180)
+  name          String    @db.VarChar(180)
+  city          City
+  address       String    @db.VarChar(255)
+  province      String?   @db.VarChar(120)
+  postalCode    String?   @map("postal_code") @db.VarChar(24)
+  country       String    @default("Italy") @db.VarChar(120)
+  housingType   HousingType @map("housing_type")
+  publicEntity  PublicEntity? @map("public_entity")
+  privateBrand  PrivateBrand? @map("private_brand")
+  operatorName  String?   @map("operator_name") @db.VarChar(160)
+  websiteUrl    String?   @map("website_url") @db.VarChar(2048)
+  description   String?   @db.Text
+  latitude      Decimal   @db.Decimal(9, 6)
+  longitude     Decimal   @db.Decimal(9, 6)
+  geo           Unsupported("geography(Point,4326)")?
+  minMonthlyRent Int?     @map("min_monthly_rent")
+  maxMonthlyRent Int?     @map("max_monthly_rent")
+  currency      Currency  @default(EUR)
+  status        ResidenceStatus @default(PENDING_REVIEW)
+  verified      Boolean   @default(false)
+  createdById   String?   @map("created_by_id")
+  approvedById  String?   @map("approved_by_id")
+  createdAt     DateTime  @map("created_at") @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @map("updated_at") @default(now()) @db.Timestamptz(6)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+
+  createdBy   User? @relation("ResidenceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy  User? @relation("ResidenceApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  amenities   ResidenceAmenity[]
+  photos      ResidencePhoto[]
+  reviews     Review[]
+  submissions ResidenceSubmission[]
+
+  @@index([city, housingType], map: "idx_residences_city_type")
+  @@index([status, city], map: "idx_residences_status_city")
+  @@index([publicEntity], map: "idx_residences_public_entity")
+  @@index([privateBrand], map: "idx_residences_private_brand")
+  @@index([latitude, longitude], map: "idx_residences_lat_lng")
+  @@index([geo], map: "idx_residences_geo", type: Gist)
+  @@map("residences")
+}
+
+model ResidenceAmenity {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  residenceId String              @map("residence_id")
+  amenity     ResidenceAmenityType
+  available   Boolean             @default(true)
+  notes       String?             @db.VarChar(255)
+
+  residence Residence @relation(fields: [residenceId], references: [id], onDelete: Cascade)
+
+  @@unique([residenceId, amenity])
+  @@index([amenity, available], map: "idx_amenities_amenity_available")
+  @@map("residence_amenities")
+}
+
+model Review {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  residenceId   String       @map("residence_id")
+  userId        String       @map("user_id")
+  title         String?      @db.VarChar(160)
+  body          String       @db.Text
+  overallRating Int          @map("overall_rating") @db.SmallInt
+  reviewerType  ReviewerType @map("reviewer_type") @default(INTERNATIONAL_STUDENT)
+  livedHereYear Int?         @map("lived_here_year")
+  stayFrom      DateTime?    @map("stay_from") @db.Timestamptz(6)
+  stayTo        DateTime?    @map("stay_to") @db.Timestamptz(6)
+  wouldRecommend Boolean?    @map("would_recommend")
+  status        ReviewStatus @default(PUBLISHED)
+  createdAt     DateTime     @map("created_at") @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime     @map("updated_at") @default(now()) @db.Timestamptz(6)
+
+  residence       Residence              @relation(fields: [residenceId], references: [id], onDelete: Cascade)
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryRatings ReviewCategoryRating[]
+  photos          ResidencePhoto[]
+  helpfulVotes    ReviewHelpfulVote[]
+
+  @@unique([residenceId, userId])
+  @@index([residenceId, createdAt], map: "idx_reviews_residence_created")
+  @@index([userId, createdAt], map: "idx_reviews_user_created")
+  @@map("reviews")
+}
+
+model ReviewCategoryRating {
+  id       String         @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  reviewId String         @map("review_id")
+  category RatingCategory
+  score    Int            @db.SmallInt
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, category])
+  @@index([category, score], map: "idx_review_category_score")
+  @@map("review_category_ratings")
+}
+
+model ReviewHelpfulVote {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  reviewId  String   @map("review_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz(6)
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, userId])
+  @@index([userId, createdAt], map: "idx_helpful_user_created")
+  @@map("review_helpful_votes")
+}
+
+model ResidencePhoto {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  residenceId String            @map("residence_id")
+  uploadedById String?          @map("uploaded_by_id")
+  reviewId    String?           @map("review_id")
+  kind        PhotoKind
+  areaType    ResidenceAreaType @map("area_type")
+  imageUrl    String            @map("image_url") @db.VarChar(2048)
+  thumbUrl    String?           @map("thumb_url") @db.VarChar(2048)
+  caption     String?           @db.VarChar(280)
+  isCover     Boolean           @map("is_cover") @default(false)
+  isApproved  Boolean           @map("is_approved") @default(false)
+  sourceLabel String?           @map("source_label") @db.VarChar(120)
+  createdAt   DateTime          @map("created_at") @default(now()) @db.Timestamptz(6)
+
+  residence  Residence @relation(fields: [residenceId], references: [id], onDelete: Cascade)
+  uploadedBy User?     @relation("UserUploadedPhotos", fields: [uploadedById], references: [id], onDelete: SetNull)
+  review     Review?   @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+
+  @@index([residenceId, kind], map: "idx_photos_residence_kind")
+  @@index([reviewId], map: "idx_photos_review_id")
+  @@map("residence_photos")
+}
+
+model ResidenceSubmission {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @map("id")
+  submittedById       String           @map("submitted_by_id")
+  residenceId         String?          @map("residence_id")
+  proposedName        String           @map("proposed_name") @db.VarChar(180)
+  proposedCity        City             @map("proposed_city")
+  proposedAddress     String           @map("proposed_address") @db.VarChar(255)
+  proposedHousingType HousingType      @map("proposed_housing_type")
+  proposedPublicEntity PublicEntity?   @map("proposed_public_entity")
+  proposedPrivateBrand PrivateBrand?   @map("proposed_private_brand")
+  proposedOperatorName String?         @map("proposed_operator_name") @db.VarChar(160)
+  proposedWebsiteUrl   String?         @map("proposed_website_url") @db.VarChar(2048)
+  notes               String?          @db.Text
+  status              SubmissionStatus @default(PENDING)
+  reviewedById        String?          @map("reviewed_by_id")
+  reviewedAt          DateTime?        @map("reviewed_at") @db.Timestamptz(6)
+  rejectionReason     String?          @map("rejection_reason") @db.VarChar(280)
+  createdAt           DateTime         @map("created_at") @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime         @map("updated_at") @default(now()) @db.Timestamptz(6)
+
+  submittedBy User       @relation("ResidenceSubmittedBy", fields: [submittedById], references: [id], onDelete: Cascade)
+  reviewedBy  User?      @relation("ResidenceReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  residence   Residence? @relation(fields: [residenceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt], map: "idx_submissions_status_created")
+  @@index([submittedById, createdAt], map: "idx_submissions_submitted_created")
+  @@map("residence_submissions")
+}
