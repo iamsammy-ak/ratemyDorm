@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: 210 25% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --border: 214 24% 90%;
+    --input: 214 24% 90%;
+
+    --brand: 221 100% 59%;
+    --brand-foreground: 0 0% 100%;
+
+    --accent: 12 100% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --ring: 221 100% 59%;
+    --radius: 1rem;
+}
+
+*,
+*::before,
+*::after {
+    border-color: hsl(var(--border));
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    @apply bg-[hsl(var(--background))] text-[hsl(var(--foreground))] antialiased;
+    font-feature-settings:
+        "rlig" 1,
+        "calt" 1;
+    background-image:
+        radial-gradient(
+            circle at 10% 10%,
+            rgba(47, 125, 255, 0.08),
+            transparent 35%
+        ),
+        radial-gradient(
+            circle at 90% 0%,
+            rgba(255, 85, 51, 0.06),
+            transparent 30%
+        );
+    min-height: 100dvh;
+}
+
+::selection {
+    background: hsl(var(--brand) / 0.18);
+    color: hsl(var(--foreground));
+}
+
+@layer base {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply text-slate-900 tracking-tight;
+    }
+
+    p {
+        @apply text-slate-700;
+    }
+
+    a {
+        @apply text-brand-600 underline-offset-4 transition-colors hover:text-brand-700;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply rounded-2xl border border-slate-200/70 bg-white/80 shadow-soft backdrop-blur;
+    }
+
+    .pill-badge {
+        @apply inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold;
+    }
+
+    .pill-badge-public {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700;
+    }
+
+    .pill-badge-private {
+        @apply border-brand-200 bg-brand-50 text-brand-700;
+    }
+
+    .section-title {
+        @apply text-xl font-semibold text-slate-900 md:text-2xl;
+    }
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    .grid-auto-fill-cards {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+}
+
+/* Lightweight scrollbar styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 0.7) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: rgb(148 163 184 / 0.6);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
